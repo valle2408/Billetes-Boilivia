@@ -25,13 +25,11 @@ class ValidadorBillete {
       );
     }
 
-    // Convertimos a int SOLO para comparar rangos (pero guardamos numeroStr con 0)
-    final numeroInt = int.parse(datos.numeroStr);
-
-    final invalido = await repo.esInvalido(
+    // Regla: NO convertir a int. El 0 cuenta.
+    final invalido = await repo.esInvalidoPorSerial(
       corte: corte,
       serie: datos.serie,
-      numeroInt: numeroInt,
+      numeroStr: datos.numeroStr,
     );
 
     if (invalido) {
