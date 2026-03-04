@@ -26,8 +26,25 @@ dev_dependencies:
 
   flutter_lints: ^5.0.0
 
+  # Icono de la app (launcher icon)
+  flutter_launcher_icons: ^0.13.1
+
 flutter:
   uses-material-design: true
 
   assets:
     - assets/seguridad_bolivia.db
+    - assets/logo_1024.png
+
+# ✅ Configuración para generar iconos (Android)
+flutter_launcher_icons:
+  android: true
+  ios: false
+  min_sdk_android: 21
+
+  # ✅ REQUERIDO por flutter_launcher_icons (aunque uses adaptive icon)
+  image_path: "assets/logo_1024.png"
+
+  # ✅ Adaptive icon (Android 8+)
+  adaptive_icon_foreground: "assets/logo_1024.png"
+  adaptive_icon_background: "#FFFFFF"
