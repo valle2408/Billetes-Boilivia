@@ -18,10 +18,21 @@ class PantallaEscaneo extends StatefulWidget {
 
 class _PantallaEscaneoState extends State<PantallaEscaneo>
     with WidgetsBindingObserver {
+  // =========================
+  // ✅ AQUÍ REGULAS LO "HORIZONTAL"
+  // - 1.00 = proporción real de cámara
+  // - 0.95 = un poquito menos horizontal (más alto)
+  // - 0.90 = todavía menos horizontal (más alto)
+  // - 1.05 = un poquito más horizontal (más bajito)
+  //
+  // RECOMENDACIÓN: empieza con 0.95 o 1.00.
+  // =========================
+  static const double factorAspectoPreview = 0.70;
+
   CameraController? _camara;
   bool _camaraLista = false;
-  bool _linternaOn = false;
 
+  bool _linternaOn = false; // estado UI (solo usuario la cambia)
   bool _yaEscaneo = false;
 
   final _reconocedor = TextRecognizer(script: TextRecognitionScript.latin);
@@ -36,29 +47,28 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    // ✅ Cámara puede iniciar automático (como dijiste).
     _iniciarCamara();
   }
 
-  // ===== CICLO DE VIDA: evita fallas al salir/volver =====
+  // ===== CICLO DE VIDA =====
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
-    // Si no hay cámara, no hacemos nada
-    if (_camara == null) return;
-
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      // Apagar linterna si estaba encendida
-      await _apagarLinternaSilencioso();
-
-      // Liberar cámara para evitar preview negra / camera in use
+      // ✅ Apagar linterna SIEMPRE al salir / pausar
+      await _forzarLinternaOffSilencioso();
       await _liberarCamara();
     }
 
     if (state == AppLifecycleState.resumed) {
-      // Al volver, reiniciar cámara si no está lista
+      // ✅ Al volver, reiniciamos cámara y forzamos linterna apagada
       if (!_camaraLista) {
         await _iniciarCamara();
+      } else {
+        await _forzarLinternaOffSilencioso();
       }
     }
   }
@@ -67,26 +77,27 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
     try {
       await _camara?.dispose();
     } catch (_) {
-      // silencioso: solo estamos limpiando recursos
+      // silencioso
     } finally {
       _camara = null;
       if (mounted) {
         setState(() {
           _camaraLista = false;
+          _linternaOn = false; // ✅ nunca queda como prendida
         });
       }
     }
   }
 
-  Future<void> _apagarLinternaSilencioso() async {
-    if (_camara == null) return;
-    if (!_linternaOn) return;
-
+  Future<void> _forzarLinternaOffSilencioso() async {
+    // ✅ Apaga físicamente el flash y sincroniza el estado
     try {
       _linternaOn = false;
-      await _camara!.setFlashMode(FlashMode.off);
+      if (_camara != null) {
+        await _camara!.setFlashMode(FlashMode.off);
+      }
     } catch (_) {
-      // silencioso
+      // algunos equipos no soportan flash o fallan -> no crashear
     } finally {
       if (mounted) setState(() {});
     }
@@ -108,12 +119,18 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
 
       await controller.initialize();
 
-      // Si el widget ya no está montado, no hacemos setState
+      // ✅ CLAVE: forzar OFF al iniciar SIEMPRE (evita que se prenda sola)
+      _linternaOn = false;
+      try {
+        await controller.setFlashMode(FlashMode.off);
+      } catch (_) {}
+
       if (!mounted) return;
 
       setState(() {
         _camara = controller;
         _camaraLista = true;
+        _linternaOn = false; // doble seguro
       });
     } catch (e) {
       if (!mounted) return;
@@ -127,12 +144,13 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
   }
 
   Future<void> _toggleLinterna() async {
-    if (_camara == null) return;
+    if (_camara == null || !_camaraLista) return;
 
-    // Linterna SOLO si el usuario quiere (no automática)
     try {
       _linternaOn = !_linternaOn;
-      await _camara!.setFlashMode(_linternaOn ? FlashMode.torch : FlashMode.off);
+      await _camara!.setFlashMode(
+        _linternaOn ? FlashMode.torch : FlashMode.off,
+      );
       setState(() {});
     } catch (e) {
       setState(() {
@@ -145,11 +163,18 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
   }
 
   Future<void> _escanear() async {
-    if (_camara == null || !_camaraLista) return;
+    if (_camara == null || !_camaraLista) {
+      setState(() {
+        _resultado = const ResultadoValidacion(
+          estado: EstadoValidacion.noLeido,
+          mensaje: 'Cámara no disponible. Reintente.',
+        );
+      });
+      return;
+    }
 
     try {
       final foto = await _camara!.takePicture();
-
       final input = InputImage.fromFilePath(foto.path);
       final texto = await _reconocedor.processImage(input);
 
@@ -206,43 +231,28 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            // ===== PREVIEW SIN BORDES (más horizontal) =====
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
                   color: Colors.black12,
                   child: _camaraLista && _camara != null
-                      ? LayoutBuilder(
-                          builder: (context, constraints) {
-                            final size = constraints.biggest;
-                            final camAspect = _camara!.value.aspectRatio;
-
-                            // "Cover": llena el ancho y recorta si hace falta
-                            final previewHeight = size.width / camAspect;
-
-                            return ClipRect(
-                              child: OverflowBox(
-                                alignment: Alignment.center,
-                                minWidth: size.width,
-                                maxWidth: size.width,
-                                minHeight: previewHeight,
-                                maxHeight: previewHeight,
-                                child: CameraPreview(_camara!),
-                              ),
-                            );
-                          },
+                      ? Center(
+                          child: AspectRatio(
+                            // ✅ Aquí se aplica el factor horizontal
+                            aspectRatio:
+                                _camara!.value.aspectRatio *
+                                factorAspectoPreview,
+                            child: CameraPreview(_camara!),
+                          ),
                         )
                       : const Center(child: CircularProgressIndicator()),
                 ),
               ),
             ),
             const SizedBox(height: 10),
-
             BannerResultado(resultado: _resultado),
-
             const SizedBox(height: 10),
-
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -251,11 +261,9 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
                 label: Text(textoBoton),
               ),
             ),
-
             const SizedBox(height: 8),
             const Align(alignment: Alignment.centerLeft, child: Advertencias()),
             const SizedBox(height: 8),
-
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
