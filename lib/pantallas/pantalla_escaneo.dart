@@ -207,16 +207,16 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
         _yaEscaneo = true;
       });
     } finally {
-    // ✅ SIN return en finally
-    if (mounted) {
-      setState(() {
+      // ✅ SIN return en finally
+      if (mounted) {
+        setState(() {
+          _escaneando = false;
+        });
+      } else {
         _escaneando = false;
-      });
-    } else {
-      _escaneando = false;
+      }
     }
   }
-}
 
   @override
   void dispose() {
@@ -280,10 +280,20 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                // ✅ NUEVO: deshabilita el botón mientras escanea
                 onPressed: _escaneando ? null : _escanear,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2EC4B6), // ✅ agua/esmeralda
+                  foregroundColor: Colors.white, // texto + icono blanco
+                  disabledBackgroundColor: const Color(
+                    0xFF2EC4B6,
+                  ).withValues(alpha: 120),
+                  disabledForegroundColor: Colors.white.withValues(alpha: 180),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
                 icon: const Icon(Icons.qr_code_scanner),
-                // ✅ opcional: mostrar estado
                 label: Text(_escaneando ? 'Escaneando...' : textoBoton),
               ),
             ),
