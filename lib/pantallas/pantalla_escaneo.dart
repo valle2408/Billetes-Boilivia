@@ -35,6 +35,9 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
   bool _linternaOn = false; // estado UI (solo usuario la cambia)
   bool _yaEscaneo = false;
 
+  // ✅ NUEVO: evita doble toque / capturas simultáneas
+  bool _escaneando = false;
+
   final _reconocedor = TextRecognizer(script: TextRecognitionScript.latin);
   final _validador = ValidadorBillete(RepositorioRangos());
 
@@ -84,6 +87,7 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
         setState(() {
           _camaraLista = false;
           _linternaOn = false; // ✅ nunca queda como prendida
+          _escaneando = false; // ✅ por seguridad
         });
       }
     }
@@ -163,6 +167,9 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
   }
 
   Future<void> _escanear() async {
+    // ✅ Bloqueo: si ya está escaneando, no hacer nada
+    if (_escaneando) return;
+
     if (_camara == null || !_camaraLista) {
       setState(() {
         _resultado = const ResultadoValidacion(
@@ -173,6 +180,10 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
       return;
     }
 
+    setState(() {
+      _escaneando = true;
+    });
+
     try {
       final foto = await _camara!.takePicture();
       final input = InputImage.fromFilePath(foto.path);
@@ -180,19 +191,32 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
 
       final res = await _validador.validar(texto.text);
 
+      if (!mounted) return;
       setState(() {
         _resultado = res;
         _yaEscaneo = true;
       });
-    } catch (e) {
+    } catch (_) {
+      // ✅ No mostrar mensaje técnico (CameraException...) al usuario
+      if (!mounted) return;
       setState(() {
-        _resultado = ResultadoValidacion(
+        _resultado = const ResultadoValidacion(
           estado: EstadoValidacion.noLeido,
-          mensaje: 'Error al escanear: $e',
+          mensaje: 'No se pudo leer. Intente nuevamente.',
         );
+        _yaEscaneo = true;
       });
+    } finally {
+    // ✅ SIN return en finally
+    if (mounted) {
+      setState(() {
+        _escaneando = false;
+      });
+    } else {
+      _escaneando = false;
     }
   }
+}
 
   @override
   void dispose() {
@@ -256,9 +280,11 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: _escanear,
+                // ✅ NUEVO: deshabilita el botón mientras escanea
+                onPressed: _escaneando ? null : _escanear,
                 icon: const Icon(Icons.qr_code_scanner),
-                label: Text(textoBoton),
+                // ✅ opcional: mostrar estado
+                label: Text(_escaneando ? 'Escaneando...' : textoBoton),
               ),
             ),
             const SizedBox(height: 8),
