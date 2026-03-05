@@ -7,6 +7,18 @@ class ValidadorBillete {
   final RepositorioRangos repo;
   ValidadorBillete(this.repo);
 
+  // ✅ Normaliza "como BCB": ignora ceros a la izquierda para comparar
+  // Ej: "091889407" -> "91889407"
+  //     "077317008" -> "77317008"
+  //     "000000001" -> "1"
+  //     "0" -> "0"
+  int _aNumeroComparable(String numeroStr) {
+    final soloDigitos = numeroStr.replaceAll(RegExp(r'[^0-9]'), '');
+    final sinCerosIzq = soloDigitos.replaceFirst(RegExp(r'^0+'), '');
+    final canon = sinCerosIzq.isEmpty ? '0' : sinCerosIzq;
+    return int.parse(canon);
+  }
+
   Future<ResultadoValidacion> validar(String textoOcr) async {
     final corte = DetectorCorte.detectar(textoOcr);
     if (corte == null) {
@@ -25,11 +37,16 @@ class ValidadorBillete {
       );
     }
 
-    // Regla: NO convertir a int. El 0 cuenta.
-    final invalido = await repo.esInvalidoPorSerial(
+    // ✅ Mantén lo leído para mostrar al usuario (con 0 si el OCR lo captó)
+    final numeroLeido = datos.numeroStr;
+
+    // ✅ Pero compara como BCB (ignorando ceros a la izquierda)
+    final numeroComparable = _aNumeroComparable(numeroLeido);
+
+    final invalido = await repo.esInvalidoPorNumero(
       corte: corte,
       serie: datos.serie,
-      numeroStr: datos.numeroStr,
+      numeroInt: numeroComparable,
     );
 
     if (invalido) {
@@ -38,7 +55,7 @@ class ValidadorBillete {
         mensaje: 'ILEGAL: coincide con un rango inválido.',
         corte: corte,
         serie: datos.serie,
-        numeroStr: datos.numeroStr,
+        numeroStr: numeroLeido, // mostramos lo leído (no el canon)
       );
     }
 
@@ -47,7 +64,7 @@ class ValidadorBillete {
       mensaje: 'LEGAL: no coincide con rangos inválidos.',
       corte: corte,
       serie: datos.serie,
-      numeroStr: datos.numeroStr,
+      numeroStr: numeroLeido,
     );
   }
 }

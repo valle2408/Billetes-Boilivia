@@ -8,9 +8,15 @@ class Advertencias extends StatelessWidget {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('• Escanee solo cortes de 10, 20 y 50 Bs.', style: TextStyle(fontSize: 12)),
+        Text(
+          '• Escanee solo billetes.',
+          style: TextStyle(fontSize: 12),
+        ),
         SizedBox(height: 4),
-        Text('• No escanear otros billetes; puede dar error.', style: TextStyle(fontSize: 12)),
+        Text(
+          '• Otros objetos pueden dar resultados incorrectos.',
+          style: TextStyle(fontSize: 12),
+        ),
       ],
     );
   }

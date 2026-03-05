@@ -35,6 +35,9 @@ flutter:
   assets:
     - assets/seguridad_bolivia.db
     - assets/logo_1024.png
+    - assets/10bs.jpg
+    - assets/20bs.jpg
+    - assets/50bs.jpg
 
 # ✅ Configuración para generar iconos (Android)
 flutter_launcher_icons:
