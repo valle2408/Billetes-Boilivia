@@ -5,19 +5,13 @@ class Advertencias extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '• Escanee solo billetes.',
-          style: TextStyle(fontSize: 12),
-        ),
-        SizedBox(height: 4),
-        Text(
-          '• Otros objetos pueden dar resultados incorrectos.',
-          style: TextStyle(fontSize: 12),
-        ),
-      ],
+    return const Center(
+      child: Text(
+        ' Escanee solo billetes.\n'
+        ' Otros objetos pueden dar resultados incorrectos.',
+        textAlign: TextAlign.center,
+        style: TextStyle(fontSize: 12),
+      ),
     );
   }
 }

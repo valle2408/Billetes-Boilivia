@@ -12,42 +12,9 @@ class PantallaAcerca extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ===== 1) Información (imágenes) =====
-            const Text(
-              'Información: cortes de billetes',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 10),
-
-            _TarjetaBillete(
-              titulo: 'Billete de 10 Bs.',
-              asset: 'assets/10bs.jpg',
-            ),
-            const SizedBox(height: 12),
-
-            _TarjetaBillete(
-              titulo: 'Billete de 20 Bs.',
-              asset: 'assets/20bs.jpg',
-            ),
-            const SizedBox(height: 12),
-
-            _TarjetaBillete(
-              titulo: 'Billete de 50 Bs.',
-              asset: 'assets/50bs.jpg',
-            ),
-
-            const SizedBox(height: 22),
-            const Divider(),
-            const SizedBox(height: 14),
-
-            // ===== 2) Acerca de nosotros =====
-            const Text(
-              'Acerca de nosotros',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-            ),
             const SizedBox(height: 6),
             const Text(
-              'Billetes Bolivia — Versión 2 v2.0',
+              'Billetes Bolivia — v2.0',
               style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
 
@@ -80,16 +47,40 @@ class PantallaAcerca extends StatelessWidget {
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Cel: 69859294',
-              style: TextStyle(fontSize: 14),
-            ),
+            const Text('Cel: 69859294', style: TextStyle(fontSize: 14)),
             const SizedBox(height: 4),
             const Text(
               'Correo: developmentgroupibarra@gmail.com',
               style: TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 6),
+            // ===== 1) Información (imágenes) =====
+            const Text(
+              'Información: cortes de billetes invalidos',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 10),
+
+            _TarjetaBillete(
+              titulo: 'Billete de 10 Bs.',
+              asset: 'assets/10bs.jpg',
+            ),
+            const SizedBox(height: 12),
+
+            _TarjetaBillete(
+              titulo: 'Billete de 20 Bs.',
+              asset: 'assets/20bs.jpg',
+            ),
+            const SizedBox(height: 12),
+
+            _TarjetaBillete(
+              titulo: 'Billete de 50 Bs.',
+              asset: 'assets/50bs.jpg',
+            ),
+
+            const SizedBox(height: 22),
+            const Divider(),
+            const SizedBox(height: 14),
           ],
         ),
       ),
@@ -101,10 +92,7 @@ class _TarjetaBillete extends StatelessWidget {
   final String titulo;
   final String asset;
 
-  const _TarjetaBillete({
-    required this.titulo,
-    required this.asset,
-  });
+  const _TarjetaBillete({required this.titulo, required this.asset});
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +110,10 @@ class _TarjetaBillete extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
               child: Text(
                 titulo,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
             AspectRatio(
