@@ -45,6 +45,7 @@ class LayoutEscaneoResponsive extends StatelessWidget {
     final esHorizontal = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF1FBF8),
       appBar: AppBar(
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
