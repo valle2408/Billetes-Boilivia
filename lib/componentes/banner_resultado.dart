@@ -45,7 +45,7 @@ class BannerResultado extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Corte: $corteTxt   Serie: $serieTxt   Número: $numeroTxt',
+            'Corte: $corteTxt  Número de serie : $numeroTxt $serieTxt ',
             style: const TextStyle(fontSize: 13),
           ),
           const SizedBox(height: 4),
