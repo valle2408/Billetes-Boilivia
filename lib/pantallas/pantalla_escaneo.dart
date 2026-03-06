@@ -2,12 +2,10 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
-import '../componentes/advertencias.dart';
-import '../componentes/banner_resultado.dart';
 import '../datos_bd/repositorio_rangos.dart';
-import '../informacion/pantalla_acerca.dart';
 import '../logica_validacion/resultado_validacion.dart';
 import '../logica_validacion/validador_billete.dart';
+import 'layout_escaneo_responsive.dart';
 
 class PantallaEscaneo extends StatefulWidget {
   const PantallaEscaneo({super.key});
@@ -18,24 +16,16 @@ class PantallaEscaneo extends StatefulWidget {
 
 class _PantallaEscaneoState extends State<PantallaEscaneo>
     with WidgetsBindingObserver {
-  // =========================
-  // ✅ AQUÍ REGULAS LO "HORIZONTAL"
-  // - 1.00 = proporción real de cámara
-  // - 0.95 = un poquito menos horizontal (más alto)
-  // - 0.90 = todavía menos horizontal (más alto)
-  // - 1.05 = un poquito más horizontal (más bajito)
-  //
-  // RECOMENDACIÓN: empieza con 0.95 o 1.00.
-  // =========================
+  // ✅ Regulación del preview (mismo que ya tenías)
   static const double factorAspectoPreview = 0.70;
 
   CameraController? _camara;
   bool _camaraLista = false;
 
-  bool _linternaOn = false; // estado UI (solo usuario la cambia)
+  bool _linternaOn = false;
   bool _yaEscaneo = false;
 
-  // ✅ NUEVO: evita doble toque / capturas simultáneas
+  // ✅ Evita doble captura
   bool _escaneando = false;
 
   final _reconocedor = TextRecognizer(script: TextRecognitionScript.latin);
@@ -50,24 +40,19 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
-    // ✅ Cámara puede iniciar automático (como dijiste).
     _iniciarCamara();
   }
 
-  // ===== CICLO DE VIDA =====
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
-      // ✅ Apagar linterna SIEMPRE al salir / pausar
       await _forzarLinternaOffSilencioso();
       await _liberarCamara();
     }
 
     if (state == AppLifecycleState.resumed) {
-      // ✅ Al volver, reiniciamos cámara y forzamos linterna apagada
       if (!_camaraLista) {
         await _iniciarCamara();
       } else {
@@ -86,22 +71,21 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
       if (mounted) {
         setState(() {
           _camaraLista = false;
-          _linternaOn = false; // ✅ nunca queda como prendida
-          _escaneando = false; // ✅ por seguridad
+          _linternaOn = false;
+          _escaneando = false;
         });
       }
     }
   }
 
   Future<void> _forzarLinternaOffSilencioso() async {
-    // ✅ Apaga físicamente el flash y sincroniza el estado
     try {
       _linternaOn = false;
       if (_camara != null) {
         await _camara!.setFlashMode(FlashMode.off);
       }
     } catch (_) {
-      // algunos equipos no soportan flash o fallan -> no crashear
+      // silencioso
     } finally {
       if (mounted) setState(() {});
     }
@@ -123,7 +107,7 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
 
       await controller.initialize();
 
-      // ✅ CLAVE: forzar OFF al iniciar SIEMPRE (evita que se prenda sola)
+      // ✅ Linterna SIEMPRE apagada al iniciar
       _linternaOn = false;
       try {
         await controller.setFlashMode(FlashMode.off);
@@ -134,7 +118,7 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
       setState(() {
         _camara = controller;
         _camaraLista = true;
-        _linternaOn = false; // doble seguro
+        _linternaOn = false;
       });
     } catch (e) {
       if (!mounted) return;
@@ -167,7 +151,6 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
   }
 
   Future<void> _escanear() async {
-    // ✅ Bloqueo: si ya está escaneando, no hacer nada
     if (_escaneando) return;
 
     if (_camara == null || !_camaraLista) {
@@ -197,7 +180,6 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
         _yaEscaneo = true;
       });
     } catch (_) {
-      // ✅ No mostrar mensaje técnico (CameraException...) al usuario
       if (!mounted) return;
       setState(() {
         _resultado = const ResultadoValidacion(
@@ -207,7 +189,6 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
         _yaEscaneo = true;
       });
     } finally {
-      // ✅ SIN return en finally
       if (mounted) {
         setState(() {
           _escaneando = false;
@@ -230,92 +211,17 @@ class _PantallaEscaneoState extends State<PantallaEscaneo>
   Widget build(BuildContext context) {
     final textoBoton = _yaEscaneo ? 'Escanee nuevamente' : 'Escanee ahora';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Billetes Bolivia'),
-            SizedBox(height: 2),
-            Text(
-              'Solo cortes de 10, 20 y 50 Bs.',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w400),
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            tooltip: _linternaOn ? 'Apagar linterna' : 'Encender linterna',
-            onPressed: _toggleLinterna,
-            icon: Icon(_linternaOn ? Icons.flash_on : Icons.flash_off),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  color: Colors.black12,
-                  child: _camaraLista && _camara != null
-                      ? Center(
-                          child: AspectRatio(
-                            // ✅ Aquí se aplica el factor horizontal
-                            aspectRatio:
-                                _camara!.value.aspectRatio *
-                                factorAspectoPreview,
-                            child: CameraPreview(_camara!),
-                          ),
-                        )
-                      : const Center(child: CircularProgressIndicator()),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            BannerResultado(resultado: _resultado),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _escaneando ? null : _escanear,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2EC4B6), // ✅ agua/esmeralda
-                  foregroundColor: Colors.white, // texto + icono blanco
-                  disabledBackgroundColor: const Color(
-                    0xFF2EC4B6,
-                  ).withValues(alpha: 120),
-                  disabledForegroundColor: Colors.white.withValues(alpha: 180),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: const Icon(Icons.qr_code_scanner),
-                label: Text(_escaneando ? 'Escaneando...' : textoBoton),
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Align(alignment: Alignment.centerLeft, child: Advertencias()),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PantallaAcerca()),
-                ),
-                child: const Text(
-                  'Acerca de nosotros',
-                  style: TextStyle(fontSize: 12),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return LayoutEscaneoResponsive(
+      camaraLista: _camaraLista,
+      camara: _camara,
+      factorAspectoPreview: factorAspectoPreview,
+      linternaOn: _linternaOn,
+      escaneando: _escaneando,
+      yaEscaneo: _yaEscaneo,
+      textoBoton: textoBoton,
+      resultado: _resultado,
+      onToggleLinterna: _toggleLinterna,
+      onEscanear: _escanear,
     );
   }
 }
